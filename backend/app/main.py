@@ -26,6 +26,9 @@ from app.api import (
 # Initialize Database tables
 Base.metadata.create_all(bind=engine)
 
+with engine.begin() as _conn:
+    _conn.exec_driver_sql("UPDATE research_projects SET status = 'failed' WHERE status = 'running'")
+
 app = FastAPI(
     title="Autonomous Theory Discovery API",
     description="Backend service for Autonomous Theory Discovery using Foundation Models (Closed-loop AI Pipeline)",

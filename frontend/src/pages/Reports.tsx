@@ -64,36 +64,46 @@ export const Reports: React.FC<{ projectId: number }> = ({ projectId }) => {
       </div>
 
       {/* Validated Candidate Highlights */}
-      <div className="bg-purple-50/60 p-6 rounded-2xl border border-purple-200">
-        <h2 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-          Validated Candidate Discovery Summary
-        </h2>
+      {report?.validated_candidate ? (
+        <div className="bg-purple-50/60 p-6 rounded-2xl border border-purple-200">
+          <h2 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            Validated Candidate Discovery Summary
+          </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-2xs">
-            <span className="text-[10px] text-slate-400 uppercase font-mono block mb-1">Candidate Theory</span>
-            <span className="text-xs font-bold text-slate-900">{report?.validated_candidate?.theory_title}</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-2xs">
+              <span className="text-[10px] text-slate-400 uppercase font-mono block mb-1">Candidate Theory</span>
+              <span className="text-xs font-bold text-slate-900">{report.validated_candidate.theory_title || 'Validated Theory'}</span>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-2xs">
+              <span className="text-[10px] text-slate-400 uppercase font-mono block mb-1">Baseline vs Proposed F1</span>
+              <span className="text-xs font-bold text-purple-700">
+                {report.validated_candidate.baseline_f1 != null ? report.validated_candidate.baseline_f1.toFixed(3) : 'N/A'} → {report.validated_candidate.proposed_f1 != null ? report.validated_candidate.proposed_f1.toFixed(3) : 'N/A'} ({report.validated_candidate.improvement})
+              </span>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-2xs">
+              <span className="text-[10px] text-slate-400 uppercase font-mono block mb-1">Composite Validation Score</span>
+              <span className="text-xs font-bold text-emerald-700">{report.validated_candidate.validation_score}% ({report.validated_candidate.decision})</span>
+            </div>
           </div>
 
-          <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-2xs">
-            <span className="text-[10px] text-slate-400 uppercase font-mono block mb-1">Baseline vs Proposed F1</span>
-            <span className="text-xs font-bold text-purple-700">
-              {report?.validated_candidate?.baseline_f1} → {report?.validated_candidate?.proposed_f1} ({report?.validated_candidate?.improvement})
-            </span>
-          </div>
-
-          <div className="bg-white p-4 rounded-xl border border-purple-100 shadow-2xs">
-            <span className="text-[10px] text-slate-400 uppercase font-mono block mb-1">Composite Validation Score</span>
-            <span className="text-xs font-bold text-emerald-700">{report?.validated_candidate?.validation_score}% ({report?.validated_candidate?.decision})</span>
+          <div className="bg-slate-900 p-4 rounded-xl font-mono text-xs text-purple-300">
+            <span className="text-[10px] text-slate-400 block mb-1">// Mathematical Formulation</span>
+            {report.validated_candidate.mathematical_expression || 'Expression pending verification'}
           </div>
         </div>
-
-        <div className="bg-slate-900 p-4 rounded-xl font-mono text-xs text-purple-300">
-          <span className="text-[10px] text-slate-400 block mb-1">// Mathematical Formulation</span>
-          {report?.validated_candidate?.mathematical_expression}
+      ) : (
+        <div className="bg-amber-50/60 border border-amber-200 p-6 rounded-2xl text-center">
+          <Award className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+          <h3 className="text-sm font-bold text-slate-900 mb-1">Candidate Validation Incomplete</h3>
+          <p className="text-xs text-slate-600">
+            No validated candidate theory has been generated for this project yet. Launch the closed-loop discovery pipeline to iterate and validate hypotheses.
+          </p>
         </div>
-      </div>
+      )}
 
       {/* Discovery History */}
       <div>

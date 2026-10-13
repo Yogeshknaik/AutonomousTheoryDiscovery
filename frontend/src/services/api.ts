@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
 export const api = {
   // Auth
@@ -24,6 +24,10 @@ export const api = {
   },
   createProject: async (data: any) => {
     const res = await axios.post(`${API_BASE}/projects`, data);
+    return res.data;
+  },
+  deleteProject: async (id: number) => {
+    const res = await axios.delete(`${API_BASE}/projects/${id}`);
     return res.data;
   },
   uploadDataset: async (projectId: number, file: File) => {
@@ -79,3 +83,48 @@ export const api = {
     return res.data;
   }
 };
+
+export interface DiscoveryOutcome {
+  project: any;
+  status: string;
+  error: string | null;
+}
+
+// Polls real backend state until the discovery run leaves "running".
+// The stage (1-7) is the furthest pipeline stage that has produced stored records.
+export async function waitForDiscovery(
+  projectId: number,
+  onStage?: (stage: number, project: any) => void,
+  intervalMs = 2000
+): Promise<DiscoveryOutcome> {
+  for (;;) {
+    const [project, graph, hypotheses, theories, experiments, validations, memories] = await Promise.all([
+      api.getProject(projectId),
+      api.getKnowledgeGraph(projectId),
+      api.getHypotheses(projectId),
+      api.getTheories(projectId),
+      api.getExperiments(projectId),
+      api.getValidations(projectId),
+      api.getMemory(projectId),
+    ]);
+
+    let stage = 1;
+    if (graph.nodes?.length) stage = 2;
+    if (hypotheses.length) stage = 3;
+    if (theories.length) stage = 4;
+    if (experiments.length) stage = 5;
+    if (validations.length) stage = 6;
+    if (memories.some((m: any) => m.memory_type !== 'pipeline_error')) stage = 7;
+    onStage?.(stage, project);
+
+    if (project.status !== 'running') {
+      const lastError = [...memories].reverse().find((m: any) => m.memory_type === 'pipeline_error');
+      return {
+        project,
+        status: project.status,
+        error: project.status === 'completed' ? null : (lastError?.content ?? 'Discovery pipeline failed.'),
+      };
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+}

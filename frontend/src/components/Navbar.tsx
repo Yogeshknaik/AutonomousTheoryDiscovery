@@ -18,7 +18,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  selectedModel = 'GPT-4o (Scientific)',
+  selectedModel = 'Llama 3.2 11B (NVIDIA NIM)',
   setSelectedModel,
   onNewThread,
   onSearchClick
@@ -29,10 +29,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [inviteCopied, setInviteCopied] = useState(false);
 
   const models = [
-    { id: 'GPT-4o (Scientific)', name: 'GPT-4o (Scientific)', desc: 'Multimodal foundation model for hypothesis & theory reasoning' },
-    { id: 'Claude 3.5 Sonnet (Symbolic)', name: 'Claude 3.5 Sonnet (Symbolic)', desc: 'Superior mathematical, SymPy, and code generation capability' },
-    { id: 'Llama-3-70B (Local Scientist)', name: 'Llama-3-70B (Local Scientist)', desc: 'Local open-weights model for privacy-preserved research' },
-    { id: 'DeepSeek-R1 (Logic & Proofs)', name: 'DeepSeek-R1 (Logic & Proofs)', desc: 'Reinforcement learning reasoning for formal theorem checking' }
+    { id: 'Llama 3.2 11B (NVIDIA NIM)', name: 'Llama 3.2 11B (NVIDIA NIM)', desc: 'Active NVIDIA NIM foundation model for scientific reasoning' },
+    { id: 'Nemotron 70B (NVIDIA NIM)', name: 'Nemotron 70B (NVIDIA NIM)', desc: 'High-parameter NVIDIA scientific reasoning model' },
+    { id: 'GPT-4o Mini (OpenAI Fallback)', name: 'GPT-4o Mini (OpenAI Fallback)', desc: 'OpenAI multi-domain scientific assistant fallback' },
+    { id: 'Gemini 1.5 Flash (Google Fallback)', name: 'Gemini 1.5 Flash (Google Fallback)', desc: 'Google multimodal high-speed research model' }
   ];
 
   const handleSelectModel = (modelName: string) => {
@@ -51,7 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="h-16 px-6 border-b border-slate-100 bg-white flex items-center justify-between select-none relative z-20">
       {/* Model Dropdown Selector (Top Left) */}
-      <div className="relative">
+      <div className="relative min-w-0 shrink">
         <button
           onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
           className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-slate-200/80 bg-slate-50/80 hover:bg-slate-100 text-slate-800 text-xs font-semibold transition-all shadow-2xs"
@@ -105,7 +105,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Action Controls (Top Right) */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2.5 shrink-0 whitespace-nowrap">
         {/* Search thread button */}
         <button
           onClick={onSearchClick}

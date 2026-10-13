@@ -7,7 +7,7 @@ import { CreateProject } from './pages/CreateProject';
 import { ProjectDetails } from './pages/ProjectDetails';
 
 export const App: React.FC = () => {
-  const [selectedModel, setSelectedModel] = useState('GPT-4o (Scientific)');
+  const [selectedModel, setSelectedModel] = useState('Llama 3.2 11B (NVIDIA NIM)');
   const [activeView, setActiveView] = useState('home');
   const [newThreadTrigger, setNewThreadTrigger] = useState(0);
 

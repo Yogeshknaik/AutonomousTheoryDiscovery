@@ -8,13 +8,13 @@ export const CreateProject: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    title: 'Feature Selection Optimization for High-Dimensional Classification',
-    research_question: 'Can adaptive hybrid feature selection combining mutual information and tree-based importance improve classification F1 score compared with standard full-feature models?',
+    title: '',
+    research_question: '',
     domain: 'Machine Learning',
-    objective: 'Maximize F1 score while eliminating noise features by at least 30%',
-    constraints: 'No computational latency degradation; non-negative importance weights',
+    objective: '',
+    constraints: '',
     evaluation_metric: 'F1 Score',
-    max_iterations: 4
+    max_iterations: 3
   });
 
   const [datasetFile, setDatasetFile] = useState<File | null>(null);

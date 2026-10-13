@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home,
@@ -12,10 +12,10 @@ import {
   Headphones,
   Settings,
   X,
-  UserCheck,
   Sliders,
   HelpCircle
 } from 'lucide-react';
+import { api } from '../services/api';
 
 interface SidebarProps {
   currentProjectId?: number;
@@ -35,13 +35,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [helpOpen, setHelpOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  // Settings weights state
-  const [weights, setWeights] = useState({
-    consistency: 0.3,
-    agreement: 0.3,
-    novelty: 0.2,
-    reproducibility: 0.2
+  // Real user and projects data
+  const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
+  const [projectCount, setProjectCount] = useState<number>(0);
+
+  // Settings weights state (PDF Eq 6)
+  const [weights, setWeights] = useState(() => {
+    const saved = localStorage.getItem('validation_weights');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // fallback
+      }
+    }
+    return {
+      consistency: 0.3,
+      agreement: 0.3,
+      novelty: 0.2,
+      reproducibility: 0.2
+    };
   });
+
+  useEffect(() => {
+    api.getCurrentUser().then((userData) => {
+      if (userData) setUser(userData);
+    }).catch(() => {});
+
+    api.getProjects().then((projs) => {
+      if (Array.isArray(projs)) setProjectCount(projs.length);
+    }).catch(() => {});
+  }, [profileOpen, settingsOpen]);
+
+  const saveWeights = () => {
+    localStorage.setItem('validation_weights', JSON.stringify(weights));
+    setSettingsOpen(false);
+  };
 
   const handleNavClick = (viewId: string) => {
     if (setActiveView) {
@@ -72,7 +101,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           title="Autonomous Theory Discovery System"
         >
           <div className="w-9.5 h-9.5 rounded-full bg-slate-950 flex items-center justify-center text-white shadow-md hover:scale-105 transition-transform duration-200">
-            {/* 8-pointed star / gear logo */}
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -86,7 +114,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12" />
             </svg>
           </div>
-          {/* Active indicator bar on far left */}
           <div className="absolute -left-2 w-1 h-5 bg-[#7C3AED] rounded-r-full hidden group-hover:block" />
         </Link>
 
@@ -109,7 +136,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100/80'
                 }`}
               >
-                {/* Purple side bar line matching reference screenshot */}
                 {isItemActive && (
                   <div className="absolute -left-3 top-2.5 bottom-2.5 w-1 bg-[#7C3AED] rounded-r-full" />
                 )}
@@ -146,16 +172,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           className="mt-1 relative group cursor-pointer border-none bg-transparent p-0"
           title="Lead Researcher Profile"
         >
-          <img
-            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120"
-            alt="User avatar"
-            className="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-sm group-hover:scale-105 transition-transform"
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="%23475569"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>';
-            }}
-          />
-          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-xs">
+            {user?.name ? user.name[0].toUpperCase() : 'R'}
+          </div>
         </button>
       </div>
 
@@ -166,14 +185,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Sliders className="w-5 h-5 text-purple-600" />
-                Validation Function Weights V(h)
+                Validation Formula Weights V(h)
               </h3>
               <button onClick={() => setSettingsOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-xs text-slate-500 mb-5 leading-relaxed">
-              Adjust relative importance weights for composite evaluation: $V(h) = \alpha C(h) + \beta A(h) + \gamma N(h) + \delta R(h)$
+            
+            <p className="text-xs text-slate-500 mb-4">
+              Formula: <code>V(h) = α·C(h) + β·A(h) + γ·N(h) + δ·R(h)</code>. Adjust relative emphasis on mathematical consistency, empirical improvement, novelty, and reproducibility.
             </p>
 
             <div className="space-y-4">
@@ -195,7 +215,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <div>
                 <div className="flex justify-between text-xs font-mono mb-1">
-                  <span>Agreement Weight β A(h)</span>
+                  <span>Agreement / F1 Gain β A(h)</span>
                   <span className="font-bold text-purple-700">{weights.agreement}</span>
                 </div>
                 <input
@@ -225,9 +245,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 />
               </div>
 
+              <div>
+                <div className="flex justify-between text-xs font-mono mb-1">
+                  <span>Reproducibility Weight δ R(h)</span>
+                  <span className="font-bold text-purple-700">{weights.reproducibility}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="0.5"
+                  step="0.05"
+                  value={weights.reproducibility}
+                  onChange={(e) => setWeights({ ...weights, reproducibility: parseFloat(e.target.value) })}
+                  className="w-full accent-purple-600 cursor-pointer"
+                />
+              </div>
+
               <button
-                onClick={() => setSettingsOpen(false)}
-                className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs transition-colors shadow-sm mt-2"
+                onClick={saveWeights}
+                className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs transition-colors shadow-sm mt-2 cursor-pointer"
               >
                 Save Framework Weights
               </button>
@@ -257,12 +293,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 Data Flow: Problem → Retrieval S(d,q) → Hypothesis h* → SymPy C(h) → Experiment E_pred → Validation V(h) → Memory H_t+1
               </div>
               <p>
-                For full details, view the paper PDF or navigate using the left sidebar items to inspect each individual module!
+                Navigate using the left sidebar items to inspect each individual module in the discovery cycle.
               </p>
             </div>
             <button
               onClick={() => setHelpOpen(false)}
-              className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors shadow-sm mt-4"
+              className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-colors shadow-sm mt-4 cursor-pointer"
             >
               Close Guide
             </button>
@@ -279,22 +315,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120"
-              alt="Researcher"
-              className="w-16 h-16 rounded-full object-cover border-2 border-purple-500 mx-auto mb-3 shadow-md"
-            />
-            <h3 className="text-base font-bold text-slate-900">Dr. Jason Vance</h3>
-            <span className="text-xs text-purple-700 font-mono font-semibold block mb-4">Lead AI Science Researcher</span>
+            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white text-xl font-bold mx-auto mb-3 shadow-md">
+              {user?.name ? user.name[0].toUpperCase() : 'R'}
+            </div>
+            <h3 className="text-base font-bold text-slate-900">{user?.name || 'Autonomous Researcher'}</h3>
+            <span className="text-xs text-purple-700 font-mono font-semibold block mb-1">{user?.role || 'Lead Researcher'}</span>
+            <span className="text-[11px] text-slate-500 block mb-4">{user?.email || 'researcher@autonomous-discovery.org'}</span>
             
             <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs font-mono text-slate-600 space-y-1 mb-4">
-              <div>Active Discoveries: <strong className="text-slate-900">12 Workspaces</strong></div>
+              <div>Active Projects: <strong className="text-slate-900">{projectCount} Workspaces</strong></div>
               <div>Framework Autonomy: <strong className="text-emerald-700">Full Closed-Loop</strong></div>
             </div>
 
             <button
               onClick={() => setProfileOpen(false)}
-              className="w-full py-2 rounded-xl bg-purple-600 text-white font-bold text-xs"
+              className="w-full py-2 rounded-xl bg-purple-600 text-white font-bold text-xs cursor-pointer hover:bg-purple-700 transition-colors"
             >
               Done
             </button>

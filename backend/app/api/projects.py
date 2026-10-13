@@ -32,22 +32,6 @@ def create_project(project: schemas.ResearchProjectCreate, db: Session = Depends
 @router.get("", response_model=List[schemas.ResearchProjectOut])
 def list_projects(db: Session = Depends(database.get_db)):
     projects = db.query(models.ResearchProject).order_by(models.ResearchProject.created_at.desc()).all()
-    if not projects:
-        # Seed initial sample project for instant UI visualization
-        sample = models.ResearchProject(
-            title="Feature Selection Optimization for Medical Classification",
-            research_question="Can adaptive hybrid feature selection improve model F1 score on complex tabular data compared with standard full-feature models?",
-            domain="Machine Learning",
-            objective="Maximize F1 score while reducing feature count by at least 30%",
-            constraints="No model latency degradation; non-negative importance weights",
-            evaluation_metric="F1 Score",
-            max_iterations=4,
-            status="draft"
-        )
-        db.add(sample)
-        db.commit()
-        db.refresh(sample)
-        projects = [sample]
     return projects
 
 @router.get("/{project_id}", response_model=schemas.ResearchProjectOut)
@@ -56,6 +40,23 @@ def get_project(project_id: int, db: Session = Depends(database.get_db)):
     if not proj:
         raise HTTPException(status_code=404, detail="Project not found")
     return proj
+
+@router.delete("/{project_id}")
+def delete_project(project_id: int, db: Session = Depends(database.get_db)):
+    proj = db.query(models.ResearchProject).filter(models.ResearchProject.id == project_id).first()
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Delete uploaded dataset file if exists
+    if proj.dataset_path and os.path.exists(proj.dataset_path):
+        try:
+            os.remove(proj.dataset_path)
+        except Exception:
+            pass
+
+    db.delete(proj)
+    db.commit()
+    return {"message": f"Project {project_id} deleted successfully"}
 
 @router.post("/{project_id}/dataset")
 def upload_dataset(project_id: int, file: UploadFile = File(...), db: Session = Depends(database.get_db)):

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { api } from '../services/api';
+import { api, waitForDiscovery } from '../services/api';
 import {
   Cpu, CheckCircle2, Lightbulb, Code, ShieldCheck, History, FileText,
   Sparkles, Layers, BookOpen, Activity, ArrowLeft
@@ -25,38 +25,44 @@ export const ProjectDetails: React.FC = () => {
   const [validations, setValidations] = useState<any[]>([]);
   const [memories, setMemories] = useState<any[]>([]);
 
+  // Alert and upload states
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [uploadingDataset, setUploadingDataset] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+
   useEffect(() => {
     loadAllData();
   }, [projectId]);
 
   const loadAllData = async () => {
     setLoading(true);
+    setErrorMsg(null);
     try {
       const proj = await api.getProject(projectId);
       setProject(proj);
 
-      const k = await api.getKnowledge(projectId);
-      setKnowledge(k);
+      const [kRes, gRes, hRes, tRes, eRes, vRes, mRes] = await Promise.allSettled([
+        api.getKnowledge(projectId),
+        api.getKnowledgeGraph(projectId),
+        api.getHypotheses(projectId),
+        api.getTheories(projectId),
+        api.getExperiments(projectId),
+        api.getValidations(projectId),
+        api.getMemory(projectId)
+      ]);
 
-      const g = await api.getKnowledgeGraph(projectId);
-      setGraph(g);
-
-      const h = await api.getHypotheses(projectId);
-      setHypotheses(h);
-
-      const t = await api.getTheories(projectId);
-      setTheories(t);
-
-      const e = await api.getExperiments(projectId);
-      setExperiments(e);
-
-      const v = await api.getValidations(projectId);
-      setValidations(v);
-
-      const m = await api.getMemory(projectId);
-      setMemories(m);
-    } catch (err) {
+      if (kRes.status === 'fulfilled') setKnowledge(kRes.value || []);
+      if (gRes.status === 'fulfilled') setGraph(gRes.value || { nodes: [], links: [] });
+      if (hRes.status === 'fulfilled') setHypotheses(hRes.value || []);
+      if (tRes.status === 'fulfilled') setTheories(tRes.value || []);
+      if (eRes.status === 'fulfilled') setExperiments(eRes.value || []);
+      if (vRes.status === 'fulfilled') setValidations(vRes.value || []);
+      if (mRes.status === 'fulfilled') setMemories(mRes.value || []);
+    } catch (err: any) {
       console.error('Error loading project data', err);
+      setErrorMsg(err?.response?.data?.detail || 'Failed to load project workspace. Make sure backend is running.');
+      setProject(null);
     } finally {
       setLoading(false);
     }
@@ -64,18 +70,91 @@ export const ProjectDetails: React.FC = () => {
 
   const handleStartDiscovery = async () => {
     setRunning(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
     try {
       await api.startDiscovery(projectId);
+      const outcome = await waitForDiscovery(projectId);
+      if (outcome.status === 'completed') {
+        setSuccessMsg('Closed-loop discovery completed. Results and records have been updated.');
+      } else {
+        setErrorMsg(outcome.error || 'Discovery pipeline failed.');
+      }
       await loadAllData();
-    } catch (e) {
+    } catch (e: any) {
       console.error('Discovery loop error', e);
+      const detail = e?.response?.data?.detail || e?.message || 'Pipeline execution failed';
+      setErrorMsg(typeof detail === 'string' ? detail : JSON.stringify(detail));
     } finally {
       setRunning(false);
     }
   };
 
+  const handleDatasetUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingDataset(true);
+    setErrorMsg(null);
+    try {
+      await api.uploadDataset(projectId, file);
+      setSuccessMsg(`Dataset "${file.name}" uploaded successfully!`);
+      await loadAllData();
+    } catch (err: any) {
+      setErrorMsg(err?.response?.data?.detail || 'Failed to upload dataset.');
+    } finally {
+      setUploadingDataset(false);
+    }
+  };
+
+  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingDoc(true);
+    setErrorMsg(null);
+    try {
+      await api.uploadDocument(projectId, file);
+      setSuccessMsg(`Literature document "${file.name}" uploaded successfully!`);
+      await loadAllData();
+    } catch (err: any) {
+      setErrorMsg(err?.response?.data?.detail || 'Failed to upload document.');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
   if (loading) {
-    return <div className="text-center py-24 text-purple-600 font-mono text-xs">Initializing Discovery Workspace...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[65vh] gap-4">
+        <div className="w-10 h-10 border-3 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
+        <div className="text-center">
+          <p className="text-purple-700 font-mono text-xs font-bold uppercase tracking-wider">
+            Initializing Discovery Workspace #{projectId}
+          </p>
+          <p className="text-slate-400 text-[11px] mt-1">Connecting telemetry and fetching closed-loop modules...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="max-w-xl mx-auto px-6 py-20 text-center">
+        <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center mx-auto mb-4">
+          <Layers className="w-6 h-6" />
+        </div>
+        <h2 className="text-lg font-bold text-slate-900 mb-2">Discovery Workspace #{projectId} Not Found</h2>
+        <p className="text-slate-500 text-xs mb-6">
+          {errorMsg || 'The requested research project workspace could not be loaded from the backend database.'}
+        </p>
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-md"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Dashboard
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -88,11 +167,42 @@ export const ProjectDetails: React.FC = () => {
         Back to Dashboard
       </Link>
 
+      {/* Global Alerts */}
+      {errorMsg && (
+        <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2 font-medium">
+            <span className="w-2 h-2 rounded-full bg-rose-500" />
+            <span>{errorMsg}</span>
+          </div>
+          <button
+            onClick={() => setErrorMsg(null)}
+            className="text-rose-500 hover:text-rose-800 font-bold px-2 py-0.5 rounded cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {successMsg && (
+        <div className="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2 font-medium">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <span>{successMsg}</span>
+          </div>
+          <button
+            onClick={() => setSuccessMsg(null)}
+            className="text-emerald-500 hover:text-emerald-800 font-bold px-2 py-0.5 rounded cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Top Workspace Header Card */}
       <div className="bg-white border border-slate-200/90 rounded-3xl p-7 mb-8 shadow-xl shadow-purple-500/5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div>
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex flex-wrap items-center gap-3 mb-3">
               <span className="px-3 py-1 rounded-full text-[11px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200">
                 {project?.domain}
               </span>
@@ -102,16 +212,45 @@ export const ProjectDetails: React.FC = () => {
               <span className="text-xs text-slate-500 font-mono">
                 Iteration: <strong className="text-purple-600">{project?.current_iteration} / {project?.max_iterations}</strong>
               </span>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200">
+                Dataset: {project?.dataset_path ? project.dataset_path.split(/[/\\]/).pop() : 'No dataset uploaded'}
+              </span>
             </div>
             <h1 className="text-2xl font-bold text-slate-900 mb-2 tracking-tight">{project?.title}</h1>
             <p className="text-slate-600 text-xs sm:text-sm max-w-3xl leading-relaxed">{project?.research_question}</p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Inline Dataset Upload */}
+            <label className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors cursor-pointer border border-slate-200">
+              <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+              <span>{uploadingDataset ? 'Uploading...' : 'Upload Dataset (.csv)'}</span>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleDatasetUpload}
+                disabled={uploadingDataset}
+                className="hidden"
+              />
+            </label>
+
+            {/* Inline Doc Upload */}
+            <label className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors cursor-pointer border border-slate-200">
+              <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+              <span>{uploadingDoc ? 'Uploading...' : 'Attach Paper (.pdf/.txt)'}</span>
+              <input
+                type="file"
+                accept=".pdf,.txt,.md"
+                onChange={handleDocUpload}
+                disabled={uploadingDoc}
+                className="hidden"
+              />
+            </label>
+
             <button
               onClick={handleStartDiscovery}
               disabled={running}
-              className={`flex items-center gap-2 px-6 py-3 rounded-2xl bg-purple-600 hover:bg-purple-700 font-bold text-xs uppercase tracking-wider text-white shadow-md shadow-purple-500/20 transition-all ${
+              className={`flex items-center gap-2 px-6 py-3 rounded-2xl bg-purple-600 hover:bg-purple-700 font-bold text-xs uppercase tracking-wider text-white shadow-md shadow-purple-500/20 transition-all cursor-pointer ${
                 running ? 'animate-pulse opacity-90' : ''
               }`}
             >
@@ -139,7 +278,7 @@ export const ProjectDetails: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   active
                     ? 'bg-purple-50 text-purple-700 border border-purple-200 shadow-2xs font-bold'
                     : 'bg-slate-50 text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -288,19 +427,27 @@ export const ProjectDetails: React.FC = () => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                   <div>
                     <span className="text-[10px] text-slate-400 block uppercase font-mono mb-1">Baseline F1</span>
-                    <span className="text-xl font-bold text-slate-700">{(exp.results[0].baseline_f1 || 0.742).toFixed(3)}</span>
+                    <span className="text-xl font-bold text-slate-700">
+                      {exp.results[0].baseline_f1 != null ? exp.results[0].baseline_f1.toFixed(3) : 'N/A'}
+                    </span>
                   </div>
                   <div>
                     <span className="text-[10px] text-purple-600 block uppercase font-mono mb-1">Theory F1</span>
-                    <span className="text-xl font-bold text-purple-700 font-mono">{(exp.results[0].f1_score || 0.791).toFixed(3)}</span>
+                    <span className="text-xl font-bold text-purple-700 font-mono">
+                      {exp.results[0].f1_score != null ? exp.results[0].f1_score.toFixed(3) : 'N/A'}
+                    </span>
                   </div>
                   <div>
                     <span className="text-[10px] text-indigo-600 block uppercase font-mono mb-1">Accuracy</span>
-                    <span className="text-xl font-bold text-indigo-700">{(exp.results[0].accuracy || 0.81).toFixed(3)}</span>
+                    <span className="text-xl font-bold text-indigo-700">
+                      {exp.results[0].accuracy != null ? exp.results[0].accuracy.toFixed(3) : 'N/A'}
+                    </span>
                   </div>
                   <div>
                     <span className="text-[10px] text-slate-500 block uppercase font-mono mb-1">Execution Speed</span>
-                    <span className="text-xl font-bold text-slate-800">{exp.results[0].execution_time || 0.12}s</span>
+                    <span className="text-xl font-bold text-slate-800">
+                      {exp.results[0].execution_time != null ? `${exp.results[0].execution_time.toFixed(2)}s` : 'N/A'}
+                    </span>
                   </div>
                 </div>
               )}
