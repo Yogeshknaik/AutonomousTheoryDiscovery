@@ -86,7 +86,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'experiments', label: 'Automated Experiments E_pred', icon: Cpu },
     { id: 'validation', label: 'Composite Validation V(h)', icon: ShieldCheck },
     { id: 'memory', label: 'Discovery Memory H_t+1', icon: History },
-    { id: 'benchmarks', label: 'Paper Performance (Tables II & III)', icon: BarChart3 }
+    { id: 'benchmarks', label: 'Measured Results (Tables II & III)', icon: BarChart3 }
   ];
 
   return (

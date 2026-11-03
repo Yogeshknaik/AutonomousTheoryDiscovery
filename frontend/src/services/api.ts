@@ -77,6 +77,12 @@ export const api = {
     return res.data;
   },
 
+  // Measured benchmark summary (all projects, or one)
+  getBenchmarks: async (projectId?: number) => {
+    const res = await axios.get(`${API_BASE}/benchmarks/summary`, { params: projectId ? { project_id: projectId } : {} });
+    return res.data;
+  },
+
   // Trigger Discovery Pipeline
   startDiscovery: async (projectId: number) => {
     // Send the V(h) weights saved in the sidebar "Validation Formula Weights" panel

@@ -73,6 +73,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [viewHypotheses, setViewHypotheses] = useState<any[]>([]);
   const [viewExperiments, setViewExperiments] = useState<any[]>([]);
   const [viewValidations, setViewValidations] = useState<any[]>([]);
+  const [benchmark, setBenchmark] = useState<any>(null);
+
+  useEffect(() => {
+    if (activeView !== 'benchmarks') return;
+    api.getBenchmarks().then(setBenchmark).catch(() => setBenchmark(null));
+  }, [activeView]);
   const [viewMemories, setViewMemories] = useState<any[]>([]);
   const [loadingViewData, setLoadingViewData] = useState<boolean>(false);
 
@@ -1174,37 +1180,36 @@ export const Dashboard: React.FC<DashboardProps> = ({
       )}
 
       {/* VIEW 9: PAPER BENCHMARKS (Sidebar 'BarChart3') */}
-      {activeView === 'benchmarks' && (
+      {activeView === 'benchmarks' && (() => {
+        const crit = benchmark?.criteria ?? [];
+        const dec = benchmark?.decisions ?? { validated: { count: 0, pct: 0 }, refine: { count: 0, pct: 0 }, reject: { count: 0, pct: 0 } };
+        const fmt = (v: number | null | undefined) => (v === null || v === undefined ? 'n/a' : `${v}%`);
+        const pct = (v: number | null | undefined) => (v === null || v === undefined ? 0 : v);
+        return (
         <div className="w-full max-w-3xl space-y-6 my-auto py-4 animate-in fade-in duration-200">
           <div className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <BarChart3 className="w-4.5 h-4.5 text-indigo-600" />
-                  Table II: Performance Evaluation of Proposed Framework
+                  Table II: Measured Performance of Your Runs
                 </h3>
-                <p className="text-slate-500 text-xs">Empirical evaluation across multiple scientific discovery criteria</p>
+                <p className="text-slate-500 text-xs">Averaged from {benchmark?.validations ?? 0} stored validations across {benchmark?.hypotheses ?? 0} hypotheses. Shows n/a until you run a discovery.</p>
               </div>
               <span className="px-3 py-1 rounded-full text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                Framework Benchmark
+                Real Data
               </span>
             </div>
 
             {/* Visual Bar Graph matching Figure 6 */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3 my-4">
-              {[
-                { criterion: 'Hypothesis Quality', score: '86%', val: 86, color: 'bg-purple-600' },
-                { criterion: 'Theory Consistency', score: '91%', val: 91, color: 'bg-emerald-600' },
-                { criterion: 'Prediction Agreement', score: '88%', val: 88, color: 'bg-indigo-600' },
-                { criterion: 'Novelty', score: '82%', val: 82, color: 'bg-amber-600' },
-                { criterion: 'Reproducibility', score: '85%', val: 85, color: 'bg-cyan-600' }
-              ].map((item, i) => (
-                <div key={i} className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 text-center">
-                  <span className="text-[10px] font-mono uppercase font-bold text-slate-500 block mb-2">{item.criterion}</span>
+              {crit.map((item: any) => (
+                <div key={item.key} className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 text-center">
+                  <span className="text-[10px] font-mono uppercase font-bold text-slate-500 block mb-2">{item.label}</span>
                   <div className="w-full bg-slate-200 h-24 rounded-xl flex items-end p-1 mb-2">
-                    <div className={`w-full rounded-lg ${item.color} transition-all duration-500`} style={{ height: `${item.val}%` }} />
+                    <div className={`w-full rounded-lg ${item.color} transition-all duration-500`} style={{ height: `${pct(item.value)}%` }} />
                   </div>
-                  <span className="text-base font-black text-slate-900">{item.score}</span>
+                  <span className="text-base font-black text-slate-900">{fmt(item.value)}</span>
                 </div>
               ))}
             </div>
@@ -1214,20 +1219,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-sm">
               <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
                 <PieChart className="w-4 h-4 text-purple-600" />
-                Table III: Distribution of 100 Theory Candidates
+                Table III: Decisions on Your Theory Candidates
               </h3>
               <div className="space-y-3 font-mono text-xs">
                 <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200">
                   <span>Validated Candidates</span>
-                  <strong className="text-sm font-bold">45 (45%)</strong>
+                  <strong className="text-sm font-bold">{dec.validated.count} ({dec.validated.pct}%)</strong>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50 text-amber-900 border border-amber-200">
                   <span>Refined Candidates</span>
-                  <strong className="text-sm font-bold">35 (35%)</strong>
+                  <strong className="text-sm font-bold">{dec.refine.count} ({dec.refine.pct}%)</strong>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-xl bg-rose-50 text-rose-900 border border-rose-200">
                   <span>Rejected Candidates</span>
-                  <strong className="text-sm font-bold">20 (20%)</strong>
+                  <strong className="text-sm font-bold">{dec.reject.count} ({dec.reject.pct}%)</strong>
                 </div>
               </div>
             </div>
@@ -1240,11 +1245,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <ul className="text-xs text-slate-600 space-y-2.5 leading-relaxed">
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>Theory Consistency (91%)</strong> achieves highest score via SymPy formal checks C(h).</span>
+                  <span><strong>Theory Consistency ({fmt(crit[1]?.value)})</strong> from SymPy formal checks C(h).</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>Prediction Agreement (88%)</strong> validates theories against ground-truth evidence E_pred.</span>
+                  <span><strong>Prediction Agreement ({fmt(crit[2]?.value)})</strong> compares each theory's F1 with the baseline.</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
@@ -1254,7 +1259,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Bottom Status Bar */}
       <div className="sticky bottom-0 z-20 w-full bg-white/95 backdrop-blur border-t border-slate-200/60 py-3 px-6 flex items-center justify-between text-xs text-slate-500">
