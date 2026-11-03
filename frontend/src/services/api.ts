@@ -79,7 +79,15 @@ export const api = {
 
   // Trigger Discovery Pipeline
   startDiscovery: async (projectId: number) => {
-    const res = await axios.post(`${API_BASE}/projects/${projectId}/discover`);
+    // Send the V(h) weights saved in the sidebar "Validation Formula Weights" panel
+    let weights: any = undefined;
+    try {
+      const saved = localStorage.getItem('validation_weights');
+      if (saved) weights = JSON.parse(saved);
+    } catch {
+      weights = undefined;
+    }
+    const res = await axios.post(`${API_BASE}/projects/${projectId}/discover`, weights ? { weights } : {});
     return res.data;
   }
 };

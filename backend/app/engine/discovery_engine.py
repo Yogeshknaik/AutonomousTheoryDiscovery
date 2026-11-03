@@ -56,7 +56,7 @@ def _fail(db: Session, project: models.ResearchProject, iteration: int, message:
     memory_service.record_memory(db, project.id, iteration, "pipeline_error", message)
     return {"error": message, "status": "failed"}
 
-def run_closed_loop_discovery(project_id: int, db: Session) -> Dict[str, Any]:
+def run_closed_loop_discovery(project_id: int, db: Session, weights: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
     project = db.query(models.ResearchProject).filter(models.ResearchProject.id == project_id).first()
     if not project:
         return {"error": "Project not found", "status": "failed"}
@@ -212,7 +212,7 @@ def run_closed_loop_discovery(project_id: int, db: Session) -> Dict[str, Any]:
             )
 
         val_data, decision, explanation = validation_service.validate_theory_candidate(
-            theory_data["consistency_C"], selected_hd, exp_results, error_message
+            theory_data["consistency_C"], selected_hd, exp_results, error_message, weights
         )
         db.add(models.Validation(
             theory_id=theory_obj.id,
@@ -285,11 +285,11 @@ def run_closed_loop_discovery(project_id: int, db: Session) -> Dict[str, Any]:
         "validated_candidate": validated_candidate is not None
     }
 
-def run_discovery_in_background(project_id: int):
+def run_discovery_in_background(project_id: int, weights: Optional[Dict[str, float]] = None):
     from app.database.database import SessionLocal
     db = SessionLocal()
     try:
-        run_closed_loop_discovery(project_id, db)
+        run_closed_loop_discovery(project_id, db, weights)
     except Exception as e:
         project = db.query(models.ResearchProject).filter(models.ResearchProject.id == project_id).first()
         if project:

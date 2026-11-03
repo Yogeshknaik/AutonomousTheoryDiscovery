@@ -207,8 +207,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
       projectId = proj.id;
       setSelectedProjectId(proj.id);
       await api.uploadDataset(proj.id, datasetFile);
-      for (const doc of literatureFiles) {
-        await api.uploadDocument(proj.id, doc);
+      // Citation S(d,q) toggle: when on, attached papers are indexed and ranked by relevance to the question
+      if (citationActive) {
+        for (const doc of literatureFiles) {
+          await api.uploadDocument(proj.id, doc);
+        }
       }
       await runDiscoveryFor(proj.id, { title: proj.title, question: proj.research_question, domain: proj.domain });
       setPipelineSuccess(`Discovery completed successfully for workspace #${proj.id}!`);
@@ -464,6 +467,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <button
                   type="button"
                   onClick={() => setCitationActive(!citationActive)}
+                  title={citationActive
+                    ? 'ON: attached PDF/TXT/MD papers are used as literature and ranked by relevance S(d,q) to your question'
+                    : 'OFF: attached papers are ignored; only the dataset and your question are used'}
                   className="flex items-center gap-2 text-xs font-medium text-slate-600 select-none cursor-pointer"
                 >
                   <div
