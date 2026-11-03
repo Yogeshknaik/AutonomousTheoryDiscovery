@@ -23,6 +23,11 @@ NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
+NVIDIA_MAX_TOKENS = int(os.getenv("NVIDIA_MAX_TOKENS", "16384"))
+# Reasoning tokens count against max_tokens, so the budget must stay well below it
+NVIDIA_REASONING_BUDGET = int(os.getenv("NVIDIA_REASONING_BUDGET", "4096"))
+NVIDIA_TIMEOUT = int(os.getenv("NVIDIA_TIMEOUT", "600"))
+
 # Maximum retry attempts for LLM calls
 MAX_RETRIES = 2
 
@@ -48,10 +53,10 @@ def call_llm(prompt: str, system_prompt: str = "You are an AI Scientific Researc
                         ],
                         "temperature": 0.6,
                         "top_p": 0.95,
-                        "max_tokens": 4096,
-                        "reasoning_budget": 16384
+                        "max_tokens": NVIDIA_MAX_TOKENS,
+                        "reasoning_budget": NVIDIA_REASONING_BUDGET
                     },
-                    timeout=60
+                    timeout=(10, NVIDIA_TIMEOUT)
                 )
                 if resp.status_code == 200:
                     data = resp.json()
