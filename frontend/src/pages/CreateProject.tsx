@@ -187,7 +187,7 @@ export const CreateProject: React.FC = () => {
               <input
                 type="file"
                 multiple
-                accept=".pdf,.docx,.txt"
+                accept=".pdf,.docx,.txt,.md"
                 onChange={(e) => setDocFiles(e.target.files)}
                 className="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200 cursor-pointer"
               />

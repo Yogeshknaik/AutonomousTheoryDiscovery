@@ -59,7 +59,7 @@ app.include_router(reports.router)
 
 # Mount Static Frontend Files
 frontend_dist = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend", "dist")
-if os.path.exists(frontend_dist):
+if os.path.isdir(os.path.join(frontend_dist, "assets")):
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
 
     @app.get("/{full_path:path}")

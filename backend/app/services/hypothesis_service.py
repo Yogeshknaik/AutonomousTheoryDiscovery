@@ -94,7 +94,12 @@ def generate_and_rank_hypotheses(
     system_prompt = "You are an autonomous AI research scientist. Return ONLY a valid JSON array."
     prompt = _build_prompt(problem_title, research_question, retrieved_knowledge, successes, failures, refinement_target, iteration)
 
-    hypotheses = parse_json_array(call_llm(prompt, system_prompt))
+    # Reasoning models occasionally return prose instead of JSON; retry once before giving up
+    hypotheses = []
+    for _ in range(2):
+        hypotheses = parse_json_array(call_llm(prompt, system_prompt))
+        if hypotheses:
+            break
     if not hypotheses:
         return []
 

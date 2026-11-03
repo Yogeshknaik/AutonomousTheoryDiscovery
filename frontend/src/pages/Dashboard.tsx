@@ -82,7 +82,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [activeDiscoveryLog, setActiveDiscoveryLog] = useState<any>(null);
 
   // File attachment & Alerts
-  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const datasetFile = attachedFiles.find((f) => f.name.toLowerCase().endsWith('.csv')) || null;
+  const literatureFiles = attachedFiles.filter((f) => f !== datasetFile);
   const [pipelineError, setPipelineError] = useState<string | null>(null);
   const [pipelineSuccess, setPipelineSuccess] = useState<string | null>(null);
 
@@ -180,8 +182,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const handleLaunchDiscovery = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!promptText.trim() || runningDiscovery) return;
-    if (!attachedFile) {
-      setPipelineError('Attach a .csv dataset before running discovery.');
+    if (!datasetFile) {
+      setPipelineError('Attach a .csv dataset before running discovery (PDF/TXT/MD files are added as literature).');
       return;
     }
 
@@ -204,7 +206,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
       });
       projectId = proj.id;
       setSelectedProjectId(proj.id);
-      await api.uploadDataset(proj.id, attachedFile);
+      await api.uploadDataset(proj.id, datasetFile);
+      for (const doc of literatureFiles) {
+        await api.uploadDocument(proj.id, doc);
+      }
       await runDiscoveryFor(proj.id, { title: proj.title, question: proj.research_question, domain: proj.domain });
       setPipelineSuccess(`Discovery completed successfully for workspace #${proj.id}!`);
     } catch (err: any) {
@@ -394,18 +399,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 {/* Attach Literature / Dataset Button */}
                 <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100/90 hover:bg-slate-200/70 text-slate-700 text-xs font-medium cursor-pointer transition-colors border border-slate-200/50">
                   <Paperclip className="w-3.5 h-3.5 text-slate-500" />
-                  <span>{attachedFile ? attachedFile.name.slice(0, 16) + '...' : 'Attach Data / Literature'}</span>
+                  <span>{attachedFiles.length ? `${datasetFile ? '1 dataset' : 'no dataset'}${literatureFiles.length ? ` + ${literatureFiles.length} doc(s)` : ''}` : 'Attach Data / Literature'}</span>
                   <input
                     type="file"
-                    accept=".csv,.pdf,.txt,.md"
-                    onChange={(e) => setAttachedFile(e.target.files?.[0] || null)}
+                    accept=".csv,.pdf,.txt,.md,.docx"
+                    multiple
+                    onChange={(e) => setAttachedFiles(Array.from(e.target.files || []))}
                     className="hidden"
                   />
                 </label>
-                {attachedFile && (
+                {attachedFiles.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => setAttachedFile(null)}
+                    onClick={() => setAttachedFiles([])}
                     title="Remove attached file"
                     className="text-slate-400 hover:text-rose-600 p-1 rounded-full cursor-pointer"
                   >

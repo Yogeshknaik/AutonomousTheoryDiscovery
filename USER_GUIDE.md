@@ -48,7 +48,7 @@ graph TD
    cd frontend
    npm run dev
    ```
-2. Open your web browser and navigate to `http://localhost:5173` (or port `8000` to view the unified production bundle).
+2. Open your web browser and navigate to `http://localhost:3000` (or port `8000` to view the unified production bundle).
 3. The left sidebar provides direct access to all core modules:
    * **Discovery Studio (`Home`):** Interactive prompt input, project overview, and quick execution.
    * **Closed-Loop Pipeline (`Layers`):** Interactive methodology flowchart connected to real-time project telemetry.

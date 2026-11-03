@@ -8,7 +8,8 @@ from app.schemas import schemas
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
-UPLOAD_DIR = os.path.join(os.getcwd(), "uploads")
+# Always the project-root uploads/ folder, regardless of where uvicorn is launched from
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("", response_model=schemas.ResearchProjectOut)
@@ -64,9 +65,23 @@ def upload_dataset(project_id: int, file: UploadFile = File(...), db: Session = 
     if not proj:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    file_path = os.path.join(UPLOAD_DIR, f"proj_{project_id}_{file.filename}")
+    filename = os.path.basename(file.filename or "dataset.csv")
+    if not filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Dataset must be a .csv file. Upload PDFs/TXT as literature documents instead.")
+
+    file_path = os.path.join(UPLOAD_DIR, f"proj_{project_id}_{filename}")
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+
+    try:
+        import pandas as pd
+        df = pd.read_csv(file_path)
+    except Exception as e:
+        os.remove(file_path)
+        raise HTTPException(status_code=400, detail=f"Could not read CSV: {e}")
+    if df.shape[1] < 2 or df.shape[0] < 20:
+        os.remove(file_path)
+        raise HTTPException(status_code=400, detail="Dataset needs at least 2 columns (features + target) and 20 rows.")
 
     proj.dataset_path = file_path
     db.commit()

@@ -77,6 +77,18 @@ $$\text{Problem Definition} \longrightarrow \text{Knowledge Indexing} \longright
 
 ---
 
+### ⚡ Fastest way (one command each, from the project root)
+
+```bash
+npm run setup      # once: installs Node + Python dependencies
+# put your NVIDIA_API_KEY in .env (copy .env.example to .env first)
+npm run dev:all    # starts backend (:8000) and frontend (:3000) together
+```
+
+Open **http://localhost:3000**, then follow [data/README.md](data/README.md). It has 4 copy-paste scenarios with real datasets.
+
+---
+
 ### 1. Backend Setup
 
 1. **Navigate to the backend folder**:
@@ -134,7 +146,7 @@ $$\text{Problem Definition} \longrightarrow \text{Knowledge Indexing} \longright
    ```bash
    npm run dev
    ```
-   The application will be accessible at: `http://localhost:5173`
+   The application will be accessible at: `http://localhost:3000`
 
 ---
 

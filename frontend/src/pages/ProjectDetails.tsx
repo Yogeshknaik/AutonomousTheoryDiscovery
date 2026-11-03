@@ -240,7 +240,7 @@ export const ProjectDetails: React.FC = () => {
               <span>{uploadingDoc ? 'Uploading...' : 'Attach Paper (.pdf/.txt)'}</span>
               <input
                 type="file"
-                accept=".pdf,.txt,.md"
+                accept=".pdf,.docx,.txt,.md"
                 onChange={handleDocUpload}
                 disabled={uploadingDoc}
                 className="hidden"
