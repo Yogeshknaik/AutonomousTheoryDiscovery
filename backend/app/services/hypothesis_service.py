@@ -42,7 +42,7 @@ SPEC_SCHEMA = """"experiment_spec": {
       "C": 1.0
     }"""
 
-def _build_prompt(problem_title, research_question, retrieved_knowledge, successes, failures, refinement_target, iteration):
+def _build_prompt(problem_title, research_question, retrieved_knowledge, successes, failures, refinement_target, iteration, objective=None, constraints=None):
     refinement_block = ""
     if refinement_target:
         refinement_block = f"""
@@ -52,6 +52,8 @@ Refinement target from the previous iteration (this candidate was marginal; prop
     return f"""
 Research Problem: {problem_title}
 Research Question: {research_question}
+Research Objective (what counts as success): {objective or 'Improve the evaluation metric over the baseline'}
+Operational Constraints (hypotheses MUST respect these): {constraints or 'None'}
 Retrieved Knowledge Context: {retrieved_knowledge}
 Previously validated candidates to build on: {json.dumps(successes)}
 Previous failures and negative results to avoid: {json.dumps(failures)}
@@ -84,7 +86,9 @@ def generate_and_rank_hypotheses(
     successes: List[str],
     failures: List[str],
     refinement_target: Optional[Dict[str, Any]],
-    iteration: int = 1
+    iteration: int = 1,
+    objective: Optional[str] = None,
+    constraints: Optional[str] = None
 ) -> List[Dict[str, Any]]:
     """
     Generate hypotheses with executable experiment specs and rank them with
@@ -92,7 +96,7 @@ def generate_and_rank_hypotheses(
     Hypotheses whose experiment_spec fails validation are dropped.
     """
     system_prompt = "You are an autonomous AI research scientist. Return ONLY a valid JSON array."
-    prompt = _build_prompt(problem_title, research_question, retrieved_knowledge, successes, failures, refinement_target, iteration)
+    prompt = _build_prompt(problem_title, research_question, retrieved_knowledge, successes, failures, refinement_target, iteration, objective, constraints)
 
     # Reasoning models occasionally return prose instead of JSON; retry once before giving up
     hypotheses = []

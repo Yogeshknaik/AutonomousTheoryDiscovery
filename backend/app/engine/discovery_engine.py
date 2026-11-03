@@ -113,7 +113,9 @@ def run_closed_loop_discovery(project_id: int, db: Session) -> Dict[str, Any]:
             successes=successes,
             failures=failures,
             refinement_target=refinement_target,
-            iteration=iter_idx
+            iteration=iter_idx,
+            objective=project.objective,
+            constraints=project.constraints
         )
         if not hypo_dicts:
             return _fail(db, project, iter_idx, f"Hypothesis generation produced no valid, executable hypotheses on iteration {iter_idx}. Check LLM connectivity and API keys.")
