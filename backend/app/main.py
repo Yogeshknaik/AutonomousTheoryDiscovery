@@ -21,7 +21,8 @@ from app.api import (
     memory,
     discovery,
     reports,
-    benchmarks
+    benchmarks,
+    llm
 )
 
 # Initialize Database tables
@@ -58,6 +59,7 @@ app.include_router(memory.router)
 app.include_router(discovery.router)
 app.include_router(reports.router)
 app.include_router(benchmarks.router)
+app.include_router(llm.router)
 
 # Mount Static Frontend Files
 frontend_dist = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "frontend", "dist")

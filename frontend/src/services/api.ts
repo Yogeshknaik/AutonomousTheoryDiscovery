@@ -83,6 +83,16 @@ export const api = {
     return res.data;
   },
 
+  // LLM network + cache status (for the navbar indicator)
+  getLlmStatus: async () => {
+    const res = await axios.get(`${API_BASE}/llm/status`, { timeout: 5000 });
+    return res.data;
+  },
+  clearLlmCache: async () => {
+    const res = await axios.delete(`${API_BASE}/llm/cache`);
+    return res.data;
+  },
+
   // Trigger Discovery Pipeline
   startDiscovery: async (projectId: number) => {
     // Send the V(h) weights saved in the sidebar "Validation Formula Weights" panel

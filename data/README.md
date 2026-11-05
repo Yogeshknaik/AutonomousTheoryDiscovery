@@ -1,6 +1,6 @@
 # Sample Scenarios: Copy, Paste, Run
 
-This folder has **4 ready-made research scenarios**. Each one has:
+This folder has **7 ready-made research scenarios**. Each one has:
 
 - `dataset.csv`: the data the system trains and tests models on (required)
 - `literature.md`: short background notes, used as "research literature" (optional, but it improves the knowledge graph and hypotheses)
@@ -118,6 +118,66 @@ Folder: `04_banknote_rejection_case/` · 1372 banknotes · 4 features · target 
 **What to expect:** baseline F1 ≈ 0.99, and every alternative we tested was 2–6% worse. The system should **Reject** the hypotheses, store them in Memory as failures, and finish without a validated theory. This is the "honest negative result" the paper says the framework must produce instead of a false discovery.
 
 Source: https://archive.ics.uci.edu/dataset/267/banknote+authentication
+
+---
+
+## Scenario 5: Radar returns: is the ionosphere signal "good" or "bad"? *(expected: Refine or Validated)*
+
+Folder: `05_ionosphere_radar_signal/` · 351 radar returns · 34 signal features · target = `target` (1 good, 0 bad)
+
+| Field | Copy this |
+|---|---|
+| Problem Title | `Ionosphere radar: does feature selection beat a random forest?` |
+| Research Question | `Can removing redundant pulse-autocorrelation features, or using a scaled linear model, improve F1 over a default random forest for classifying ionosphere radar returns as good or bad?` |
+| Domain | `Machine Learning` |
+| Evaluation Metric | `F1 Score` |
+| Maximum Iterations | `3` |
+| Research Objective | `Find a preprocessing or model theory that beats the random-forest baseline F1 by at least 1%` |
+| Operational Constraints | `Use only the provided radar features; results must be stable across 3 seeds` |
+
+**What to expect (success):** baseline F1 (5-fold CV, random forest) ≈ **0.957**; scaled logistic regression ≈ 0.908. Random forest is already strong, so a validated theory needs a feature-subset idea, not a model swap. Success = V ≥ 75 and F1 gain ≥ 1%.
+
+Source: https://archive.ics.uci.edu/dataset/52/ionosphere (file `ionosphere.data`; class `g` mapped to 1, `b` to 0)
+
+---
+
+## Scenario 6: Sonar: rock or metal cylinder? *(expected: Refine or Rejected)*
+
+Folder: `06_sonar_rock_vs_mine/` · 208 sonar returns · 60 frequency-band features · target = `target` (1 mine, 0 rock)
+
+| Field | Copy this |
+|---|---|
+| Problem Title | `Sonar: can band selection beat a random forest on a small dataset?` |
+| Research Question | `Can selecting a subset of the 60 sonar frequency bands, or a different model family, improve F1 over a default random forest for telling metal cylinders from rocks?` |
+| Domain | `Machine Learning` |
+| Evaluation Metric | `F1 Score` |
+| Maximum Iterations | `3` |
+| Research Objective | `Test whether a band-selection theory generalises beyond the baseline on high-dimensional, small-sample data` |
+| Operational Constraints | `Use at most 50% of the original features; results must be stable across 3 seeds` |
+
+**What to expect (success):** baseline F1 (5-fold CV, random forest) ≈ **0.859**; scaled logistic regression ≈ 0.751. The gap is large, so a feature-selection hypothesis has room to win, but with 208 rows its gain can be noisy. Success = a Validated theory; an honest Reject is also a valid outcome.
+
+Source: https://archive.ics.uci.edu/dataset/151/connectionist+bench+sonar+mines+vs+rocks
+
+---
+
+## Scenario 7: Parkinson's: can voice measurements detect the disease? *(expected: Validated or Refine)*
+
+Folder: `07_parkinsons_voice/` · 195 voice recordings · 22 voice features · target = `target` (1 Parkinson's, 0 healthy)
+
+| Field | Copy this |
+|---|---|
+| Problem Title | `Parkinson's from voice: compact feature subset vs random forest` |
+| Research Question | `Can a compact subset of jitter, shimmer and nonlinear voice features, or a scaled linear model, improve F1 over a default random forest for detecting Parkinson's disease from voice recordings?` |
+| Domain | `Machine Learning` |
+| Evaluation Metric | `F1 Score` |
+| Maximum Iterations | `3` |
+| Research Objective | `Find a voice-feature theory that beats the random-forest baseline F1 by at least 1%` |
+| Operational Constraints | `Classes are imbalanced; prefer interpretable models when performance is similar` |
+
+**What to expect (success):** baseline F1 (5-fold CV, random forest) ≈ **0.947**; scaled logistic regression ≈ 0.907. Recordings from the same person can inflate scores, so a small gain may not hold across seeds. Success = V ≥ 75 with a ≥ 1% F1 gain.
+
+Source: https://archive.ics.uci.edu/dataset/174/parkinsons (file `parkinsons.data`; `status` renamed to `target`, `name` removed)
 
 ---
 

@@ -100,8 +100,9 @@ def generate_and_rank_hypotheses(
 
     # Reasoning models occasionally return prose instead of JSON; retry once before giving up
     hypotheses = []
-    for _ in range(2):
-        hypotheses = parse_json_array(call_llm(prompt, system_prompt))
+    for attempt in range(2):
+        # Retry must bypass the cache, otherwise it would return the same unparseable answer
+        hypotheses = parse_json_array(call_llm(prompt, system_prompt, force_refresh=attempt > 0))
         if hypotheses:
             break
     if not hypotheses:

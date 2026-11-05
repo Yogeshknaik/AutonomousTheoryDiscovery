@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Sparkles,
   ChevronDown,
@@ -7,8 +7,22 @@ import {
   Plus,
   Check,
   X,
-  Share2
+  Share2,
+  Wifi,
+  WifiOff,
+  Database,
+  Trash2
 } from 'lucide-react';
+import { api } from '../services/api';
+
+interface LlmStatus {
+  online: boolean | null;
+  last_error: string | null;
+  last_provider: string | null;
+  cache_hits: number;
+  cache_fallbacks: number;
+  cache: { entries: number; enabled: boolean };
+}
 
 interface NavbarProps {
   selectedModel?: string;
@@ -27,6 +41,49 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteCopied, setInviteCopied] = useState(false);
+  const [llm, setLlm] = useState<LlmStatus | null>(null);
+  const [llmUnreachable, setLlmUnreachable] = useState(false);
+
+  // Poll LLM network/cache status. The UI keeps working if the backend itself is unreachable.
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const s = await api.getLlmStatus();
+        if (!cancelled) { setLlm(s); setLlmUnreachable(false); }
+      } catch {
+        if (!cancelled) setLlmUnreachable(true);
+      }
+    };
+    poll();
+    const id = setInterval(poll, 15000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
+  const handleClearCache = async () => {
+    try {
+      await api.clearLlmCache();
+      const s = await api.getLlmStatus();
+      setLlm(s);
+    } catch {
+      setLlmUnreachable(true);
+    }
+  };
+
+  const llmLabel = llmUnreachable
+    ? 'Backend unreachable'
+    : llm?.online === false
+      ? 'Offline · using cache'
+      : llm?.online === true
+        ? 'Online'
+        : 'Checking…';
+  const llmTitle = [
+    llm?.last_provider ? `Last provider: ${llm.last_provider}` : null,
+    `Cached answers: ${llm?.cache.entries ?? 0}`,
+    `Cache hits: ${llm?.cache_hits ?? 0} · Fallbacks: ${llm?.cache_fallbacks ?? 0}`,
+    llm?.last_error ? `Last error: ${llm.last_error}` : null,
+  ].filter(Boolean).join('\n');
+  const llmDot = llmUnreachable || llm?.online === false ? 'bg-amber-500' : llm?.online === true ? 'bg-emerald-500' : 'bg-slate-300';
 
   const models = [
     { id: 'Llama 3.2 11B (NVIDIA NIM)', name: 'Llama 3.2 11B (NVIDIA NIM)', desc: 'Active NVIDIA NIM foundation model for scientific reasoning' },
@@ -106,6 +163,29 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Action Controls (Top Right) */}
       <div className="flex items-center gap-2.5 shrink-0 whitespace-nowrap">
+        {/* LLM network + cache status */}
+        <div
+          title={llmTitle}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200/80 bg-slate-50/80 text-slate-700 text-xs font-medium"
+        >
+          {llm?.online === false || llmUnreachable ? (
+            <WifiOff className="w-3.5 h-3.5 text-amber-600" />
+          ) : (
+            <Wifi className="w-3.5 h-3.5 text-slate-500" />
+          )}
+          <span className={`w-1.5 h-1.5 rounded-full ${llmDot}`} />
+          <span>{llmLabel}</span>
+          <Database className="w-3.5 h-3.5 text-slate-400 ml-1" />
+          <span className="tabular-nums">{llm?.cache.entries ?? 0}</span>
+          <button
+            onClick={handleClearCache}
+            title="Clear cached LLM responses"
+            className="text-slate-400 hover:text-red-600 p-0.5 rounded"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        </div>
+
         {/* Search thread button */}
         <button
           onClick={onSearchClick}
