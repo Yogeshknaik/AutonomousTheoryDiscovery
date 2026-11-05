@@ -31,6 +31,48 @@ Each folder has `dataset.csv` (the data) and `literature.md` (background notes).
 
 ---
 
+## What automated theory discovery does (examples)
+
+The system does the research loop a scientist does, without a person doing each step: it proposes an idea, tests it, and keeps or discards it based on the evidence. It does not prove scientific laws. It only shows whether an idea beats a baseline on the data you give it.
+
+### Example 1: Heart disease (feature selection)
+
+**Question:** "Can removing weak columns predict heart disease better than the standard model?"
+
+1. Reads the data: 303 patients, 13 measurements, plus 4 fake noise columns.
+2. Proposes ideas, such as "keep the 60% most correlated features."
+3. Checks each idea's formula for validity.
+4. Tests each idea 3 times against a standard random forest.
+5. Decides:
+
+| Idea | F1 vs. standard | Decision |
+|---|---|---|
+| Mutual-information filter | −1.6% | Refine |
+| Correlation filter | +1.07% | Validated |
+
+6. Remembers the failed idea so the next round won't repeat it.
+
+### Example 2: Diabetes (model selection)
+
+**Question:** "Can a different model predict diabetes better than the standard random forest?"
+
+1. Reads the data: 768 patients, 8 measurements, answer column `Outcome`.
+2. Proposes ideas, such as "scaled logistic regression" and "gradient boosting."
+3. Checks each idea's formula for validity.
+4. Tests each idea 3 times against the standard random forest.
+5. Decides:
+
+| Idea | F1 vs. standard | Decision |
+|---|---|---|
+| Scaled logistic regression | +1.2% | Validated |
+| Gradient boosting | −1.4% | Rejected |
+
+6. Remembers the failed idea so the next round won't repeat it.
+
+**Caveat:** these are results from my test runs. The AI proposes different ideas each time, so your run may differ.
+
+---
+
 ## Every screen, in one line each
 
 Use the left sidebar to move between them. Choose the project in the dropdown at the top of each screen.
